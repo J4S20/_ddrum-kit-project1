@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive JavaScript Drum Kit</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>JS Drum Kit 🥁</h1>
+        <p class="instruction">Press keyboard keys or click the pads to play!</p>
+        
+        <div class="keys">
+            <div data-key="65" class="key" data-sound="clap">
+                <kbd>A</kbd>
+                <span class="sound">Clap</span>
+            </div>
+            <div data-key="83" class="key" data-sound="hihat">
+                <kbd>S</kbd>
+                <span class="sound">Hi-Hat</span>
+            </div>
+            <div data-key="68" class="key" data-sound="kick">
+                <kbd>D</kbd>
+                <span class="sound">Kick</span>
+            </div>
+            <div data-key="70" class="key" data-sound="openhat">
+                <kbd>F</kbd>
+                <span class="sound">Open Hat</span>
+            </div>
+            <div data-key="71" class="key" data-sound="boom">
+                <kbd>G</kbd>
+                <span class="sound">Boom</span>
+            </div>
+            <div data-key="72" class="key" data-sound="ride">
+                <kbd>H</kbd>
+                <span class="sound">Ride</span>
+            </div>
+            <div data-key="74" class="key" data-sound="snare">
+                <kbd>J</kbd>
+                <span class="sound">Snare</span>
+            </div>
+            <div data-key="75" class="key" data-sound="tom">
+                <kbd>K</kbd>
+                <span class="sound">Tom</span>
+            </div>
+            <div data-key="76" class="key" data-sound="tink">
+                <kbd>L</kbd>
+                <span class="sound">Tink</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Web Audio API Synth Engine for zero-dependency sound generation
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(soundType) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            switch(soundType) {
+                case 'kick':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(130, now);
+                    osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    gainNode.gain.setValueAtTime(1, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                    break;
+
+                case 'snare':
+                    // White noise buffer for snare rattle
+                    createNoise(0.2, 300, 0.7);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+                    gainNode.gain.setValueAtTime(0.6, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                    break;
+
+                case 'hihat':
+                    createNoise(0.05, 1000, 0.3);
+                    break;
+
+                case 'openhat':
+                    createNoise(0.3, 800, 0.4);
+                    break;
+
+                case 'clap':
+                    createNoise(0.15, 600, 0.5);
+                    break;
+
+                case 'tom':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(110, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+                    gainNode.gain.setValueAtTime(0.8, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                    break;
+
+                case 'ride':
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(600, now);
+                    gainNode.gain.setValueAtTime(0.2, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                    break;
+
+                case 'boom':
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(90, now);
+                    osc.frequency.exponentialRampToValueAtTime(10, now + 0.6);
+                    gainNode.gain.setValueAtTime(1, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                    osc.start(now);
+                    osc.stop(now + 0.6);
+                    break;
+
+                case 'tink':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1200, now);
+                    osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+                    gainNode.gain.setValueAtTime(0.4, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                    break;
+            }
+        }
+
+        // Helper function to synthesize percussion noise (for cymbals, snares, claps)
+        function createNoise(duration, filterFreq, volume) {
+            const bufferSize = audioCtx.sampleRate * duration;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = filterFreq;
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            noise.start();
+        }
+
+        // Trigger via Keyboard
+        window.addEventListener('keydown', function(e) {
+            const keyElement = document.querySelector(`.key[data-key="${e.keyCode}"]`);
+            if (!keyElement) return;
+            const sound = keyElement.getAttribute('data-sound');
+            
+            playSound(sound);
+            keyElement.classList.add('playing');
+        });
+
+        // Remove animation class after transition
+        const keys = document.querySelectorAll('.key');
+        keys.forEach(key => {
+            key.addEventListener('transitionend', function(e) {
+                if (e.propertyName !== 'transform') return;
+                this.classList.remove('playing');
+            });
+
+            // Trigger via Mouse Click / Touch Tap
+            key.addEventListener('click', function() {
+                const sound = this.getAttribute('data-sound');
+                playSound(sound);
+                this.classList.add('playing');
+            });
+        });
+    </script>
+</body>
+</html>
